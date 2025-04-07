@@ -27,15 +27,27 @@ client.once('ready', () => {
 })
 
 client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return
-  const command = client.commands.get(interaction.commandName)
-  if (!command) return
-  try {
-    await command.execute(interaction)
-  } catch (error) {
-    console.error(error)
-    await interaction.reply({ content: 'Ocurrió un error al ejecutar el comando.', ephemeral: true })
+  if (interaction.isChatInputCommand()) {
+    const command = client.commands.get(interaction.commandName)
+    if (!command) return
+    try {
+      await command.execute(interaction)
+    } catch (error) {
+      console.error(error)
+      await interaction.reply({ content: 'Ocurrió un error al ejecutar el comando.', ephemeral: true })
+    }
+  }
+
+  if (interaction.isAutocomplete()) {
+    const command = client.commands.get(interaction.commandName)
+    if (!command || !command.autocomplete) return
+    try {
+      await command.autocomplete(interaction)
+    } catch (error) {
+      console.error('Error en autocompletado:', error)
+    }
   }
 })
+
 
 client.login(process.env.TOKEN)

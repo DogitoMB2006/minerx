@@ -13,21 +13,29 @@ module.exports = {
   async execute(interaction) {
     const userId = interaction.user.id
     let index = 0
+    let purchaseMessage = null
 
     const getEmbed = async () => {
       const selected = pickaxes[index]
       const coins = await db.get(`botcoins_${userId}`) || 0
-      const owned = await db.get(`pickaxe_${userId}`) || 1
-      const isOwned = selected.id <= owned
+      
+      // NUEVO: Obtenemos el nivel más alto de pico que posee el usuario
+      const highestPickaxeId = await db.get(`highestPickaxe_${userId}`) || 1
+      const isOwned = selected.id <= highestPickaxeId
+
+      let description = `Selected: ➡️ ${selected.emoji} **${selected.name}**\n` +
+                       `Price: ${selected.price ? `${emojis.coins} ${selected.price}` : 'Default'}\n` +
+                       `Status: ${isOwned ? '✅ Owned' : coins >= selected.price ? '🟢 Available' : '🔴 Not enough coins'}`
+      
+      // Add purchase message if there is one
+      if (purchaseMessage) {
+        description += `\n\n${purchaseMessage}`;
+      }
 
       const embed = new EmbedBuilder()
         .setTitle('🛒 Pickaxe Shop')
         .setColor('Blue')
-        .setDescription(
-          `Selected: ➡️ ${selected.emoji} **${selected.name}**\n` +
-          `Price: ${selected.price ? `${emojis.coins} ${selected.price}` : 'Default'}\n` +
-          `Status: ${isOwned ? '✅ Owned' : coins >= selected.price ? '🟢 Available' : '🔴 Not enough coins'}`
-        )
+        .setDescription(description)
 
       return embed
     }
@@ -65,29 +73,39 @@ module.exports = {
 
       if (i.customId === 'prev_pickaxe') {
         index = (index - 1 + pickaxes.length) % pickaxes.length
+        purchaseMessage = null
       }
 
       if (i.customId === 'next_pickaxe') {
         index = (index + 1) % pickaxes.length
+        purchaseMessage = null
       }
 
       if (i.customId === 'buy_pickaxe') {
         const selected = pickaxes[index]
         const coins = await db.get(`botcoins_${userId}`) || 0
-        const ownedPickaxe = await db.get(`pickaxe_${userId}`) || 1
+        
+        // NUEVO: Obtenemos el nivel más alto de pico que posee el usuario
+        const highestPickaxeId = await db.get(`highestPickaxe_${userId}`) || 1
       
-        if (selected.id <= ownedPickaxe) {
-          return i.reply({ content: 'You already own this pickaxe.', ephemeral: true })
+        if (selected.id <= highestPickaxeId) {
+          purchaseMessage = '❌ You already own this pickaxe.';
         }
-      
-        if (coins < selected.price) {
-          return i.reply({ content: 'Not enough coins to buy this pickaxe.', ephemeral: true })
+        else if (coins < selected.price) {
+          purchaseMessage = '❌ Not enough coins to buy this pickaxe.';
         }
-      
-        await db.set(`pickaxe_${userId}`, selected.id)
-        await db.set(`botcoins_${userId}`, coins - selected.price)
-      
-        await i.reply({ content: `✅ You bought ${selected.emoji} **${selected.name}**!`, ephemeral: true })
+        else {
+          // NUEVO: Actualizamos el nivel más alto de pico que posee el usuario
+          await db.set(`highestPickaxe_${userId}`, selected.id)
+          
+          // También equipamos el nuevo pico automáticamente
+          await db.set(`pickaxe_${userId}`, selected.id)
+          
+          // Restamos el costo
+          await db.set(`botcoins_${userId}`, coins - selected.price)
+          
+          purchaseMessage = `✅ You bought ${selected.emoji} **${selected.name}**!`;
+        }
       }
 
       await i.update({

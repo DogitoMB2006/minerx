@@ -4,7 +4,11 @@
     "emoji": "<:woodenpickaxe:1358621016804294857>",
     "rarity": "common",
     "id": 1,
-    "canMine": ["stone", "coal"]
+    "canMine": ["stone", "coal"],
+    "mineAmount": {
+      "stone": 1,
+      "coal": 1
+    }
   },
   {
     "name": "stonepickaxe",
@@ -12,6 +16,11 @@
     "rarity": "common",
     "id": 2,
     "price": 300,
-    "canMine": ["stone", "coal", "iron"]
+    "canMine": ["stone", "coal", "raw_iron"],
+    "mineAmount": {
+      "stone": 3,
+      "coal": 2,
+      "raw_iron": 1
+    }
   }
 ]

@@ -1,6 +1,7 @@
 const { QuickDB } = require('quick.db')
 const db = new QuickDB()
 const ores = require('../utils/ores.json')
+const pickaxes = require('../utils/pickaxes.json')
 
 const createMineSession = (userId, username, interaction) => {
   const session = {
@@ -8,7 +9,7 @@ const createMineSession = (userId, username, interaction) => {
     mined: [],
     totalCoins: 0,
     totalXP: 0,
-    leveledUp: false // Track if user already leveled up in this session
+    leveledUp: false
   }
 
   const getXPFromOre = (ore) => {
@@ -23,18 +24,14 @@ const createMineSession = (userId, username, interaction) => {
   }
 
   const checkLevelUp = async () => {
-    // Get current values
     const currentXP = await db.get(`xp_${userId}`) || 0
     const currentLevel = await db.get(`level_${userId}`) || 1
     const neededXP = 20 + (currentLevel - 1) * 5
 
-    // Check if enough XP to level up
     if (currentXP >= neededXP) {
-      // Update level and reset XP
       await db.add(`level_${userId}`, 1)
       await db.set(`xp_${userId}`, currentXP - neededXP)
-      
-      // Only send the level up message if we haven't already for this level
+
       if (!session.leveledUp) {
         session.leveledUp = true
         await interaction.followUp({
@@ -50,11 +47,23 @@ const createMineSession = (userId, username, interaction) => {
       const oreData = ores.find(o => o.name === oreName)
       if (!oreData) return
 
-      session.mined.push(oreData)
-      session.totalCoins += oreData.price
-      const xpGain = getXPFromOre(oreData)
-      session.totalXP += xpGain
-      await db.add(`xp_${userId}`, xpGain)
+      const pickaxeId = await db.get(`pickaxe_${userId}`) || 1
+      const pickaxe = pickaxes.find(p => p.id === pickaxeId)
+      const mineAmount = pickaxe?.mineAmount?.[oreName] || 1
+
+      for (let i = 0; i < mineAmount; i++) {
+        session.mined.push(oreData)
+        if (oreName === 'raw_iron') {
+          await db.add(`raw_iron_${userId}`, 1)
+        } else {
+          session.totalCoins += oreData.price
+        }
+        
+        const xpGain = getXPFromOre(oreData)
+        session.totalXP += xpGain
+        await db.add(`xp_${userId}`, xpGain)
+      }
+
       await checkLevelUp()
     },
     getSummaryFields: () => {

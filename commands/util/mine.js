@@ -13,7 +13,7 @@ const { createMineSession } = require('../../mining/minelogic')
 
 const rarityChances = {
   common: 80,
-  uncommon: 90,
+  uncommon: 70,
   rare: 5,
   epic: 2,
   legendary: 1
@@ -21,15 +21,16 @@ const rarityChances = {
 
 const getRandomOre = (allowedOres) => {
   const roll = Math.random() * 100
-  let selected = allowedOres.find(o => o.rarity === 'common')
-  for (const ore of allowedOres) {
+  const valid = allowedOres.filter(ore => {
     const chance = rarityChances[ore.rarity] || 0
-    if (roll <= chance) {
-      selected = ore
-      break
-    }
+    return roll <= chance
+  })
+
+  if (valid.length > 0) {
+    return valid[Math.floor(Math.random() * valid.length)]
   }
-  return selected
+
+  return allowedOres.find(o => o.rarity === 'common') || allowedOres[0]
 }
 
 module.exports = {

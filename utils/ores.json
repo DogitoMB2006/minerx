@@ -10,5 +10,16 @@
     "emoji": "<:coal:1358627705779650660>",
     "rarity": "uncommon",
     "price": 5
+  },
+  {
+    "name": "raw_iron",
+    "emoji": "<:raw_iron:1358795839291789545>",
+    "rarity": "uncommon"
+  },
+  {
+    "name": "iron_ingot",
+    "emoji": "<:iron_ingot:1358796697437995339>",
+    "rarity": "uncommon",
+    "price": 9
   }
 ]

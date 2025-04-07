@@ -11,22 +11,33 @@ module.exports = {
 
   async execute(interaction) {
     const userId = interaction.user.id
-    const ownedId = await db.get(`pickaxe_${userId}`) || 1
-
+    const equippedId = await db.get(`pickaxe_${userId}`) || 1
+    
+    // NUEVO: Obtenemos el nivel más alto de pico que posee el usuario
+    const highestPickaxeId = await db.get(`highestPickaxe_${userId}`) || 1
+    
     // Filter only pickaxes the user owns (by ID)
-    const ownedPickaxes = pickaxes.filter(p => p.id <= ownedId)
-    let selectedIndex = 0
+    const ownedPickaxes = pickaxes.filter(p => p.id <= highestPickaxeId)
+    let selectedIndex = ownedPickaxes.findIndex(p => p.id === equippedId)
+    if (selectedIndex === -1) selectedIndex = 0 // Por si acaso
+    
+    let equipMessage = null
 
     const getEmbed = () => {
       const list = ownedPickaxes.map((p, i) => {
         const isSelected = i === selectedIndex
-        const isEquipped = p.id === ownedId
+        const isEquipped = p.id === equippedId
         return `${isSelected ? '➡️' : '   '} ${p.emoji} ${p.name}${isEquipped ? ' (equipped)' : ''}`
       }).join('\n')
 
+      // Add the equip confirmation message if there is one
+      const description = equipMessage 
+        ? `${list}\n\n${equipMessage}` 
+        : list;
+
       return new EmbedBuilder()
         .setTitle('🧰 Your Pickaxes')
-        .setDescription(list)
+        .setDescription(description)
         .setColor('Orange')
     }
 
@@ -53,16 +64,20 @@ module.exports = {
 
       if (i.customId === 'prev_pick') {
         selectedIndex = (selectedIndex - 1 + ownedPickaxes.length) % ownedPickaxes.length
+        equipMessage = null
       }
 
       if (i.customId === 'next_pick') {
         selectedIndex = (selectedIndex + 1) % ownedPickaxes.length
+        equipMessage = null
       }
 
       if (i.customId === 'select_pick') {
         const selected = ownedPickaxes[selectedIndex]
         await db.set(`pickaxe_${userId}`, selected.id)
-        await i.reply({ content: `✅ You equipped ${selected.emoji} **${selected.name}**!`, ephemeral: true })
+        
+        // Instead of replying, we'll update the embed with a confirmation message
+        equipMessage = `✅ You equipped ${selected.emoji} **${selected.name}**!`
       }
 
       await i.update({
