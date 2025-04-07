@@ -13,7 +13,7 @@ const { createMineSession } = require('../../mining/minelogic')
 
 const rarityChances = {
   common: 80,
-  uncommon: 20,
+  uncommon: 90,
   rare: 5,
   epic: 2,
   legendary: 1
@@ -21,7 +21,7 @@ const rarityChances = {
 
 const getRandomOre = (allowedOres) => {
   const roll = Math.random() * 100
-  let selected = allowedOres.find(o => o.rarity === 'common') // fallback
+  let selected = allowedOres.find(o => o.rarity === 'common')
   for (const ore of allowedOres) {
     const chance = rarityChances[ore.rarity] || 0
     if (roll <= chance) {
@@ -39,6 +39,7 @@ module.exports = {
 
   async execute(interaction) {
     const userId = interaction.user.id
+    const username = interaction.user.username
     const userWorld = await db.get(`world_${userId}`) || 'overworld'
     const currentPickaxeId = await db.get(`pickaxe_${userId}`) || 1
     const pickaxe = pickaxes.find(p => p.id === currentPickaxeId)
@@ -48,10 +49,10 @@ module.exports = {
     const minedEmoji = '⬛'
     const caveSize = 9
 
-    const caveMap = Array.from({ length: caveSize }, (_, i) => getRandomOre(allowedOres))
+    const caveMap = Array.from({ length: caveSize }, () => getRandomOre(allowedOres))
 
     let position = 0
-    const session = createMineSession(userId)
+    const session = createMineSession(userId, username, interaction)
 
     const getCaveView = () => {
       return caveMap.map((ore, i) => {
@@ -93,7 +94,7 @@ module.exports = {
       }
 
       const currentOre = caveMap[position]
-      session.logOre(currentOre.name)
+      await session.logOre(currentOre.name)
       position++
 
       if (position >= caveSize) {
