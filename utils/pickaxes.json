@@ -5,5 +5,13 @@
     "rarity": "common",
     "id": 1,
     "canMine": ["stone", "coal"]
+  },
+  {
+    "name": "stonepickaxe",
+    "emoji": "<:stonepickaxe:1358785640216395966>",
+    "rarity": "common",
+    "id": 2,
+    "price": 300,
+    "canMine": ["stone", "coal", "iron"]
   }
 ]
