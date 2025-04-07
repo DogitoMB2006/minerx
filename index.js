@@ -1,15 +1,11 @@
-import { Client, Collection, GatewayIntentBits } from 'discord.js'
-import fs from 'node:fs'
-import path from 'node:path'
-import { fileURLToPath } from 'url'
-import 'dotenv/config'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const { Client, Collection, GatewayIntentBits } = require('discord.js')
+const fs = require('fs')
+const path = require('path')
+require('dotenv').config()
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] })
-client.commands = new Collection()
 
+client.commands = new Collection()
 const foldersPath = path.join(__dirname, 'commands')
 const commandFolders = fs.readdirSync(foldersPath)
 
@@ -18,23 +14,28 @@ for (const folder of commandFolders) {
   const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'))
   for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file)
-    const command = (await import(`file://${filePath}`)).default
+    const command = require(filePath)
     if ('data' in command && 'execute' in command) {
       client.commands.set(command.data.name, command)
     }
   }
 }
 
-client.on('ready', () => {
+client.once('ready', () => {
   console.log(`MinerX bot iniciado como ${client.user.tag}`)
+  require('./deployslashcommands.js')
 })
 
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return
   const command = client.commands.get(interaction.commandName)
   if (!command) return
-  await command.execute(interaction)
+  try {
+    await command.execute(interaction)
+  } catch (error) {
+    console.error(error)
+    await interaction.reply({ content: 'Ocurrió un error al ejecutar el comando.', ephemeral: true })
+  }
 })
-import('./deployslashcommands.js')
 
 client.login(process.env.TOKEN)

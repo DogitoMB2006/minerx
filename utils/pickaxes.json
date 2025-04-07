@@ -1,0 +1,9 @@
+[
+  {
+    "name": "woodenpickaxe",
+    "emoji": "<:woodenpickaxe:1358621016804294857>",
+    "rarity": "common",
+    "id": 1,
+    "canMine": ["stone", "coal"]
+  }
+]

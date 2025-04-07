@@ -1,0 +1,14 @@
+[
+  {
+    "name": "stone",
+    "emoji": "<:stone:1358621567151771678>",
+    "rarity": "common",
+    "price": 1
+  },
+  {
+    "name": "coal",
+    "emoji": "<:coal:1358627705779650660>",
+    "rarity": "uncommon",
+    "price": 5
+  }
+]
