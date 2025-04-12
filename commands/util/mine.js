@@ -53,84 +53,95 @@ module.exports = {
       });
     }
     
-    activeMiners.add(userId); // 👈 Lo agregamos como activo
+    activeMiners.add(userId);
 
+    try {
+      const allowedOres = ores.filter(o => pickaxe.canMine.includes(o.name))
+      const minedEmoji = '⬛'
+      const caveSize = 9
 
-    const allowedOres = ores.filter(o => pickaxe.canMine.includes(o.name))
-    const minedEmoji = '⬛'
-    const caveSize = 9
+      const caveMap = Array.from({ length: caveSize }, () => getRandomOre(allowedOres))
 
-    const caveMap = Array.from({ length: caveSize }, () => getRandomOre(allowedOres))
+      let position = 0
+      const session = createMineSession(userId, username, interaction)
 
-    let position = 0
-    const session = createMineSession(userId, username, interaction)
-
-    const getCaveView = () => {
-      return caveMap.map((ore, i) => {
-        if (i < position) return minedEmoji
-        if (i === position) return pickaxeEmoji
-        return ore.emoji
-      }).join(' ')
-    }
-
-    const getEmbed = () => {
-      return new EmbedBuilder()
-        .setTitle('⛏️ Mining Time')
-        .setDescription(`${getCaveView()}\n\nUsing pickaxe: ${pickaxe.emoji}`)
-        .setColor('Grey')
-    }
-
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('mine_button')
-        .setLabel('Mine')
-        .setStyle(ButtonStyle.Primary)
-    )
-
-    const msg = await interaction.reply({
-      embeds: [getEmbed()],
-      components: [row],
-      fetchReply: true
-    })
-
-    const collector = msg.createMessageComponentCollector({
-      componentType: ComponentType.Button,
-      time: 30000
-    });
-    
-    // ✅ Esto va aquí, no dentro del .on('collect')
-    collector.on('end', () => {
-      activeMiners.delete(userId);
-    });
-    
-    collector.on('collect', async i => {
-      if (i.customId !== 'mine_button') return;
-      if (i.user.id !== interaction.user.id) {
-        return i.reply({ content: 'This button is not for you.', ephemeral: true });
+      const getCaveView = () => {
+        return caveMap.map((ore, i) => {
+          if (i < position) return minedEmoji
+          if (i === position) return pickaxeEmoji
+          return ore.emoji
+        }).join(' ')
       }
-    
-      const currentOre = caveMap[position];
-      await session.logOre(currentOre.name);
-      position++;
-    
-      if (position >= caveSize) {
-        const coins = session.getCoins();
-        await db.add(`botcoins_${userId}`, coins);
-    
-        const finalEmbed = new EmbedBuilder()
-          .setTitle('✅ Mining Complete')
-          .setDescription('You reached the end of the cave!\n\nHere\'s what you mined:')
-          .addFields(session.getSummaryFields())
-          .setColor('Green');
-    
-        return i.update({ embeds: [finalEmbed], components: [] });
+
+      const getEmbed = () => {
+        return new EmbedBuilder()
+          .setTitle('⛏️ Mining Time')
+          .setDescription(`${getCaveView()}\n\nUsing pickaxe: ${pickaxe.emoji}`)
+          .setColor('Grey')
       }
-    
-      await i.update({
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('mine_button')
+          .setLabel('Mine')
+          .setStyle(ButtonStyle.Primary)
+      )
+
+      const msg = await interaction.reply({
         embeds: [getEmbed()],
-        components: [row]
+        components: [row],
+        fetchReply: true
+      })
+
+      const collector = msg.createMessageComponentCollector({
+        componentType: ComponentType.Button,
+        time: 30000
       });
-    });
-    
+      
+      // This handles when the collector times out
+      collector.on('end', () => {
+        activeMiners.delete(userId);
+      });
+      
+      collector.on('collect', async i => {
+        if (i.customId !== 'mine_button') return;
+        if (i.user.id !== interaction.user.id) {
+          return i.reply({ content: 'This button is not for you.', ephemeral: true });
+        }
+      
+        const currentOre = caveMap[position];
+        await session.logOre(currentOre.name);
+        position++;
+      
+        if (position >= caveSize) {
+          const coins = session.getCoins();
+          await db.add(`botcoins_${userId}`, coins);
+      
+          const finalEmbed = new EmbedBuilder()
+            .setTitle('✅ Mining Complete')
+            .setDescription('You reached the end of the cave!\n\nHere\'s what you mined:')
+            .addFields(session.getSummaryFields())
+            .setColor('Green');
+          
+          // Remove user from activeMiners when they complete mining
+          activeMiners.delete(userId);
+          
+          return i.update({ embeds: [finalEmbed], components: [] });
+        }
+      
+        await i.update({
+          embeds: [getEmbed()],
+          components: [row]
+        });
+      });
+    } catch (error) {
+      // If there's an error, make sure to remove the user from activeMiners
+      activeMiners.delete(userId);
+      console.error('Error in mine command:', error);
+      return interaction.reply({ 
+        content: 'An error occurred while mining. Please try again.', 
+        ephemeral: true 
+      });
+    }
   }
 }
