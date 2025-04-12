@@ -21,5 +21,16 @@
     "emoji": "<:iron_ingot:1358796697437995339>",
     "rarity": "uncommon",
     "price": 9
+  },
+  {
+    "name": "raw_gold",
+    "emoji": "<:raw_gold:1358821072274985182>",
+    "rarity": "rare"
+  },
+  {
+    "name": "gold_ingot",
+    "emoji": "<:gold_ingot:1358821121952059566>",
+    "rarity": "rare",
+    "price": 20
   }
 ]

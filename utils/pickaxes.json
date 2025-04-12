@@ -22,5 +22,20 @@
       "coal": 2,
       "raw_iron": 1
     }
+  },
+  {
+    "name": "ironpickaxe",
+    "emoji": "<:ironpickaxe:1358820713234042950>",
+    "rarity": "common",
+    "id": 3,
+    "price": 1000,
+    "canMine": ["stone", "coal", "raw_iron", "raw_gold", "diamond_ore"],
+    "mineAmount": {
+      "stone": 5,
+      "coal": 4,
+      "raw_iron": 3,
+      "raw_gold": 1,
+      "diamond_ore": 1
+    }
   }
 ]

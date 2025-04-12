@@ -7,7 +7,7 @@ const db = new QuickDB()
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('sell')
-    .setDescription('Sell iron ingots only')
+    .setDescription('Sell ingots')
     .addStringOption(option =>
       option.setName('item')
         .setDescription('Select item to sell')
@@ -22,14 +22,13 @@ module.exports = {
 
   async autocomplete(interaction) {
     const focused = interaction.options.getFocused().toLowerCase()
+    const allowedItems = ['iron_ingot', 'gold_ingot']
 
-    const options = [{
-      name: 'iron_ingot',
-      value: 'iron_ingot'
-    }]
+    const options = allowedItems
+      .map(name => ({ name, value: name }))
+      .filter(opt => opt.name.includes(focused))
 
-    const filtered = options.filter(opt => opt.name.includes(focused))
-    await interaction.respond(filtered)
+    await interaction.respond(options)
   },
 
   async execute(interaction) {
@@ -37,11 +36,11 @@ module.exports = {
     const item = interaction.options.getString('item')
     const amountInput = interaction.options.getString('amount')
 
-    if (item !== 'iron_ingot') {
-      return interaction.reply({ content: 'Only iron_ingot can be sold.', ephemeral: true })
+    const ore = ores.find(o => o.name === item)
+    if (!ore || !ore.price || !['iron_ingot', 'gold_ingot'].includes(item)) {
+      return interaction.reply({ content: 'Only iron_ingot or gold_ingot can be sold.', ephemeral: true })
     }
 
-    const ore = ores.find(o => o.name === item)
     const userAmount = await db.get(`${item}_${userId}`) || 0
 
     let amountToSell = 0
@@ -53,7 +52,7 @@ module.exports = {
         return interaction.reply({ content: 'Please enter a valid number or "all".', ephemeral: true })
       }
       if (parsed > userAmount) {
-        return interaction.reply({ content: `You don't have that many ${item}.`, ephemeral: true })
+        return interaction.reply({ content: `You don't have that much ${item}.`, ephemeral: true })
       }
       amountToSell = parsed
     }

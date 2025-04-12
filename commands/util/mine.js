@@ -2,7 +2,7 @@ const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, Compo
 const { QuickDB } = require('quick.db')
 const path = require('path')
 const fs = require('fs')
-
+const activeMiners = new Set();
 const db = new QuickDB()
 
 const ores = JSON.parse(fs.readFileSync(path.join(__dirname, '../../utils/ores.json'), 'utf8'))
@@ -12,9 +12,9 @@ const pickaxes = JSON.parse(fs.readFileSync(path.join(__dirname, '../../utils/pi
 const { createMineSession } = require('../../mining/minelogic')
 
 const rarityChances = {
-  common: 80,
-  uncommon: 70,
-  rare: 5,
+  common: 50,
+  uncommon: 30,
+  rare: 20,
   epic: 2,
   legendary: 1
 }
@@ -45,6 +45,16 @@ module.exports = {
     const currentPickaxeId = await db.get(`pickaxe_${userId}`) || 1
     const pickaxe = pickaxes.find(p => p.id === currentPickaxeId)
     const pickaxeEmoji = pickaxe.emoji
+
+    if (activeMiners.has(userId)) {
+      return interaction.reply({
+        content: "⛏️ You're already mining! Please finish your current session.",
+        ephemeral: true
+      });
+    }
+    
+    activeMiners.add(userId); // 👈 Lo agregamos como activo
+
 
     const allowedOres = ores.filter(o => pickaxe.canMine.includes(o.name))
     const minedEmoji = '⬛'
@@ -86,35 +96,41 @@ module.exports = {
     const collector = msg.createMessageComponentCollector({
       componentType: ComponentType.Button,
       time: 30000
-    })
-
+    });
+    
+    // ✅ Esto va aquí, no dentro del .on('collect')
+    collector.on('end', () => {
+      activeMiners.delete(userId);
+    });
+    
     collector.on('collect', async i => {
-      if (i.customId !== 'mine_button') return
+      if (i.customId !== 'mine_button') return;
       if (i.user.id !== interaction.user.id) {
-        return i.reply({ content: 'This button is not for you.', ephemeral: true })
+        return i.reply({ content: 'This button is not for you.', ephemeral: true });
       }
-
-      const currentOre = caveMap[position]
-      await session.logOre(currentOre.name)
-      position++
-
+    
+      const currentOre = caveMap[position];
+      await session.logOre(currentOre.name);
+      position++;
+    
       if (position >= caveSize) {
-        const coins = session.getCoins()
-        await db.add(`botcoins_${userId}`, coins)
-
+        const coins = session.getCoins();
+        await db.add(`botcoins_${userId}`, coins);
+    
         const finalEmbed = new EmbedBuilder()
           .setTitle('✅ Mining Complete')
           .setDescription('You reached the end of the cave!\n\nHere\'s what you mined:')
           .addFields(session.getSummaryFields())
-          .setColor('Green')
-
-        return i.update({ embeds: [finalEmbed], components: [] })
+          .setColor('Green');
+    
+        return i.update({ embeds: [finalEmbed], components: [] });
       }
-
+    
       await i.update({
         embeds: [getEmbed()],
         components: [row]
-      })
-    })
+      });
+    });
+    
   }
 }

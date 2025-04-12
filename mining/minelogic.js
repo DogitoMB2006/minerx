@@ -53,11 +53,14 @@ const createMineSession = (userId, username, interaction) => {
 
       for (let i = 0; i < mineAmount; i++) {
         session.mined.push(oreData)
-        if (oreName === 'raw_iron') {
-          await db.add(`raw_iron_${userId}`, 1)
+        const inventoryOnly = ['raw_iron', 'raw_gold']
+
+        if (inventoryOnly.includes(oreName)) {
+          await db.add(`${oreName}_${userId}`, 1)
         } else {
           session.totalCoins += oreData.price
         }
+        
         
         const xpGain = getXPFromOre(oreData)
         session.totalXP += xpGain

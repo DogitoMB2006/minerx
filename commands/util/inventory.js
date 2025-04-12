@@ -13,8 +13,8 @@ module.exports = {
     const userId = interaction.user.id
     const username = interaction.user.username
 
-    // Lista de minerales que se almacenan (no vendidos automáticamente)
-    const storedItems = ['raw_iron', 'iron_ingot'] // puedes agregar más
+    // Materiales que se almacenan y no se venden automáticamente
+    const storedItems = ['raw_iron', 'iron_ingot', 'raw_gold', 'gold_ingot']
 
     let inventoryText = ''
 
