@@ -10,6 +10,7 @@ const world = JSON.parse(fs.readFileSync(path.join(__dirname, '../../utils/world
 const pickaxes = JSON.parse(fs.readFileSync(path.join(__dirname, '../../utils/pickaxes.json'), 'utf8'))
 
 const { createMineSession } = require('../../mining/minelogic')
+const { getRandomChest, getChestReward, applyReward } = require('../../utils/chestUtils')
 
 const rarityChances = {
   common: 50,
@@ -31,6 +32,18 @@ const getRandomOre = (allowedOres) => {
   }
 
   return allowedOres.find(o => o.rarity === 'common') || allowedOres[0]
+}
+
+// Generate a cave map with only ores (chests will be handled separately)
+const generateCaveMap = (allowedOres, caveSize) => {
+  const map = [];
+  
+  for (let i = 0; i < caveSize; i++) {
+    // Regular ore
+    map.push(getRandomOre(allowedOres));
+  }
+  
+  return map;
 }
 
 module.exports = {
@@ -60,7 +73,8 @@ module.exports = {
       const minedEmoji = '⬛'
       const caveSize = 9
 
-      const caveMap = Array.from({ length: caveSize }, () => getRandomOre(allowedOres))
+      // Generate cave map with potential chests
+      const caveMap = generateCaveMap(allowedOres, caveSize);
 
       let position = 0
       const session = createMineSession(userId, username, interaction)
@@ -110,12 +124,32 @@ module.exports = {
         }
       
         const currentOre = caveMap[position];
+        // Handle regular ore mining
         await session.logOre(currentOre.name);
+        
         position++;
       
         if (position >= caveSize) {
           const coins = session.getCoins();
           await db.add(`botcoins_${userId}`, coins);
+          
+          // Check if a chest should appear at the end of mining
+          const foundChest = getRandomChest();
+          
+          // If a chest is found, generate reward and apply it
+          if (foundChest) {
+            const reward = getChestReward(foundChest);
+            const rewardDescription = await applyReward(userId, reward);
+            
+            // Update the session with the chest information
+            session.setChestFound(foundChest, rewardDescription);
+            
+            // Announce the chest discovery to the channel
+            await interaction.followUp({
+              content: `🎁 ${username} found a ${foundChest.emoji} ${foundChest.name} after mining and got ${rewardDescription}!`,
+              ephemeral: false
+            });
+          }
       
           const finalEmbed = new EmbedBuilder()
             .setTitle('✅ Mining Complete')

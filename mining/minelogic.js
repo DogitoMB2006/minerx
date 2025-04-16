@@ -9,7 +9,9 @@ const createMineSession = (userId, username, interaction) => {
     mined: [],
     totalCoins: 0,
     totalXP: 0,
-    leveledUp: false
+    leveledUp: false,
+    foundChest: null,
+    chestReward: null
   }
 
   const getXPFromOre = (ore) => {
@@ -95,7 +97,20 @@ const createMineSession = (userId, username, interaction) => {
         inline: false
       })
 
+      // If a chest was found, add its information to the summary
+      if (session.foundChest && session.chestReward) {
+        fields.push({
+          name: `🎁 ${session.foundChest.emoji} ${session.foundChest.name} Found!`,
+          value: `You discovered a chest and received: ${session.chestReward}`,
+          inline: false
+        })
+      }
+
       return fields
+    },
+    setChestFound: (chest, reward) => {
+      session.foundChest = chest
+      session.chestReward = reward
     },
     getCoins: () => session.totalCoins
   }
